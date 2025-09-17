@@ -124,9 +124,9 @@ function updateRecommendation(sym) {
 EMA13/21/55：${rec.ema13} / ${rec.ema21} / ${rec.ema55}`;
 }
 populateSymbols();
-// set default 6-month range
-startDate.value = '2025-02-08';
-endDate.value = '2025-08-08';
+// set default 6-month range ending today (2025-09-17)
+startDate.value = '2025-03-17';
+endDate.value = '2025-09-17';
 periodSelect.value = 'daily';
 document.getElementById('symbolSelect').addEventListener('change', drawChart);
 document.getElementById('periodSelect').addEventListener('change', drawChart);
