@@ -130,9 +130,32 @@ function drawChart() {
 function updateRecommendation(sym) {
   const rec = recommendations[sym];
   const div = document.getElementById('recommendation');
-  if (!rec) { div.textContent = ''; return; }
+  if (!rec) {
+    div.textContent = '';
+    return;
+  }
   const name = codeToChinese[sym] ? `${codeToChinese[sym]} (${sym})` : sym;
-  div.textContent = `${name}\n建議：${rec.suggestion}\n風險：${rec.risk_note}\n收盤：${rec.close}（變動：${rec.change} / ${rec.percent}%）\nEMA13/21/55：${rec.ema13} / ${rec.ema21} / ${rec.ema55}`;
+  // Default EMA values come from the recommendation (daily timeframe)
+  let ema13Val = rec.ema13;
+  let ema21Val = rec.ema21;
+  let ema55Val = rec.ema55;
+  // Adjust EMA values based on the selected period (daily/weekly/monthly)
+  const currentPeriod = periodSelect.value;
+  if (dataset[sym] && dataset[sym][currentPeriod]) {
+    const ds = dataset[sym][currentPeriod];
+    // Choose last data index within end date constraint
+    let idx = ds.dates.length - 1;
+    if (endDate.value) {
+      const i = ds.dates.findIndex(d => d > endDate.value);
+      idx = i >= 0 ? i - 1 : ds.dates.length - 1;
+    }
+    if (idx < 0) idx = ds.dates.length - 1;
+    // Update EMA values if available
+    if (Array.isArray(ds.ema13) && ds.ema13[idx] != null) ema13Val = ds.ema13[idx];
+    if (Array.isArray(ds.ema21) && ds.ema21[idx] != null) ema21Val = ds.ema21[idx];
+    if (Array.isArray(ds.ema55) && ds.ema55[idx] != null) ema55Val = ds.ema55[idx];
+  }
+  div.textContent = `${name}\n建議：${rec.suggestion}\n風險：${rec.risk_note}\n收盤：${rec.close}（變動：${rec.change} / ${rec.percent}%）\nEMA13/21/55：${ema13Val} / ${ema21Val} / ${ema55Val}`;
 }
 populateSymbols();
 // 預設日期範圍：過去500日至今日
