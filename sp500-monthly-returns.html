@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>八月繫好安全帶 — S&P 500 月均報酬分析</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+    background: #0f1117;
+    color: #fff;
+    overflow: hidden;
+  }
+
+  .slides { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    display: none;
+    width: 100%;
+    height: 100%;
+    padding: 60px 80px;
+    flex-direction: column;
+    justify-content: center;
+    position: absolute;
+    top: 0; left: 0;
+  }
+  .slide.active { display: flex; }
+
+  /* ── Slide 1 ── */
+  .slide-1 {
+    background: linear-gradient(135deg, #0f1117 0%, #1a2340 60%, #0d1b2a 100%);
+    align-items: flex-start;
+  }
+  .slide-1 .tag {
+    background: #2563eb;
+    color: #fff;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 20px;
+    margin-bottom: 28px;
+  }
+  .slide-1 h1 {
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 20px;
+  }
+  .slide-1 h1 span { color: #f59e0b; }
+  .slide-1 .subtitle {
+    font-size: 22px;
+    color: #94a3b8;
+    max-width: 640px;
+    line-height: 1.6;
+    margin-bottom: 48px;
+  }
+  .slide-1 .meta { font-size: 14px; color: #475569; }
+  .slide-1 .meta span { color: #64748b; }
+
+  /* ── Slide 2 ── */
+  .slide-2 {
+    background: #0f1117;
+  }
+  .slide-title {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .slide-title span { color: #3b82f6; }
+  .slide-desc {
+    font-size: 15px;
+    color: #64748b;
+    margin-bottom: 40px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 28px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #cbd5e1;
+  }
+  .legend-dot {
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .chart-wrap {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 260px;
+    padding-bottom: 32px;
+    position: relative;
+    border-bottom: 1px solid #334155;
+  }
+  .zero-line {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 32px;
+    height: 1px;
+    background: #475569;
+  }
+  .month-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+  }
+  .bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 228px;
+  }
+  .bar {
+    width: 11px;
+    border-radius: 2px 2px 0 0;
+    transition: opacity 0.2s;
+  }
+  .bar.neg {
+    border-radius: 0 0 2px 2px;
+    align-self: flex-start;
+    margin-top: auto;
+  }
+  .month-label {
+    font-size: 10px;
+    color: #64748b;
+    margin-top: 6px;
+    white-space: nowrap;
+  }
+  .highlight-box {
+    position: absolute;
+    border: 2px solid #38bdf8;
+    border-radius: 6px;
+    pointer-events: none;
+  }
+
+  /* ── Slide 3 Key findings ── */
+  .slide-3 { background: #0f1117; }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 8px;
+  }
+  .card {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 28px 24px;
+    border-left: 4px solid transparent;
+  }
+  .card.green  { border-color: #22c55e; }
+  .card.yellow { border-color: #f59e0b; }
+  .card.red    { border-color: #ef4444; }
+  .card .icon { font-size: 32px; margin-bottom: 12px; }
+  .card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .card p  { font-size: 14px; color: #94a3b8; line-height: 1.6; }
+  .card .num {
+    font-size: 36px;
+    font-weight: 800;
+    margin: 10px 0 4px;
+  }
+  .card.green  .num { color: #22c55e; }
+  .card.yellow .num { color: #f59e0b; }
+  .card.red    .num { color: #ef4444; }
+
+  /* ── Slide 4 August deep dive ── */
+  .slide-4 { background: #0f1117; }
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-top: 12px;
+  }
+  .info-box {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 28px;
+  }
+  .info-box h3 {
+    font-size: 16px;
+    color: #94a3b8;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #334155;
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label { font-size: 14px; color: #cbd5e1; }
+  .stat-val {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .pos { color: #22c55e; }
+  .neg-c { color: #ef4444; }
+  .neu { color: #94a3b8; }
+
+  .alert-box {
+    background: linear-gradient(135deg, #1e1010, #2d1515);
+    border: 1px solid #ef4444;
+    border-radius: 12px;
+    padding: 28px;
+  }
+  .alert-box h3 {
+    font-size: 16px;
+    color: #fca5a5;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .alert-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .alert-box li {
+    font-size: 15px;
+    color: #e2e8f0;
+    padding-left: 20px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .alert-box li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: #ef4444;
+  }
+
+  /* ── Slide 5 Strategy ── */
+  .slide-5 { background: linear-gradient(135deg, #0f1117, #0d1f0d); }
+  .strategy-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-top: 12px;
+  }
+  .s-card {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .s-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 3px;
+  }
+  .s-card.s1::before { background: #3b82f6; }
+  .s-card.s2::before { background: #f59e0b; }
+  .s-card.s3::before { background: #22c55e; }
+  .s-card.s4::before { background: #a78bfa; }
+  .s-card .s-num {
+    font-size: 48px;
+    font-weight: 900;
+    color: #1e3a5f;
+    position: absolute;
+    right: 16px; top: 8px;
+  }
+  .s-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+  .s-card p  { font-size: 14px; color: #94a3b8; line-height: 1.6; }
+
+  /* ── Slide 6 Conclusion ── */
+  .slide-6 {
+    background: linear-gradient(135deg, #0f1117 0%, #1a2340 100%);
+    align-items: center;
+    text-align: center;
+  }
+  .slide-6 .big-icon { font-size: 80px; margin-bottom: 24px; }
+  .slide-6 h2 { font-size: 44px; font-weight: 800; margin-bottom: 16px; }
+  .slide-6 h2 span { color: #f59e0b; }
+  .slide-6 .quote {
+    font-size: 18px;
+    color: #94a3b8;
+    max-width: 700px;
+    line-height: 1.7;
+    margin-bottom: 40px;
+  }
+  .slide-6 .source {
+    font-size: 12px;
+    color: #475569;
+  }
+
+  /* ── Nav ── */
+  .nav {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 100;
+  }
+  .nav button {
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    padding: 10px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    transition: background 0.2s;
+  }
+  .nav button:hover { background: #334155; }
+  .nav button:disabled { opacity: 0.3; cursor: default; }
+  .nav .page-indicator {
+    font-size: 13px;
+    color: #64748b;
+    min-width: 60px;
+    text-align: center;
+  }
+  .dots {
+    display: flex;
+    gap: 6px;
+  }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #334155;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .dot.active { background: #3b82f6; }
+</style>
+</head>
+<body>
+
+<div class="slides">
+
+  <!-- Slide 1: Title -->
+  <div class="slide slide-1 active">
+    <div class="tag">S&amp;P 500 季節性分析</div>
+    <h1>八月，<span>繫好安全帶</span></h1>
+    <p class="subtitle">
+      標準普爾 500 指數月均報酬率全面解析（1950–2024）<br>
+      掌握季節性規律，在波動中做出更明智的投資決策
+    </p>
+    <div class="meta">
+      資料來源：Carson Investment Research／YCharts &nbsp;|&nbsp;
+      <span>截至 2025年7月30日</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: Chart -->
+  <div class="slide slide-2">
+    <div class="slide-title">各月平均報酬率 <span>總覽</span></div>
+    <div class="slide-desc">1950 年至 2024 年，四種時間維度的對照比較</div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div>1950年至今</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>近20年</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>近10年</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1e3a5f"></div>選後年</div>
+    </div>
+
+    <div class="chart-wrap" id="chart">
+      <div class="zero-line"></div>
+    </div>
+
+    <div style="margin-top:16px; font-size:13px; color:#475569;">
+      藍框標示：八月為全年表現最疲弱月份之一，各維度均接近 0% 或負值
+    </div>
+  </div>
+
+  <!-- Slide 3: Key Findings -->
+  <div class="slide slide-3">
+    <div class="slide-title">三大 <span>核心發現</span></div>
+    <div class="slide-desc">從歷史數據中萃取的關鍵投資洞察</div>
+    <div class="cards">
+      <div class="card green">
+        <div class="icon">📈</div>
+        <h3>七月 — 年度最強月</h3>
+        <div class="num">+3.3%</div>
+        <p>近十年平均報酬高達 <strong>+3.3%</strong>，在所有月份中高居首位，是佈局的黃金時機。</p>
+      </div>
+      <div class="card yellow">
+        <div class="icon">⚠️</div>
+        <h3>八月 — 表現最為疲弱</h3>
+        <div class="num">≈ 0%</div>
+        <p>各時間維度均接近零報酬。選後年甚至出現負值，需提高警覺。</p>
+      </div>
+      <div class="card red">
+        <div class="icon">📉</div>
+        <h3>九月 — 歷史最差月份</h3>
+        <div class="num">-2.5%</div>
+        <p>近十年九月均值為 <strong>-2.5%</strong>，是全年波動最大、風險最高的月份。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 4: August Deep Dive -->
+  <div class="slide slide-4">
+    <div class="slide-title">八月 <span>深度解析</span></div>
+    <div class="slide-desc">四個時間維度的詳細數據與風險提示</div>
+    <div class="two-col">
+      <div class="info-box">
+        <h3>各維度平均報酬率</h3>
+        <div class="stat-row">
+          <span class="stat-label">📊 1950年至今</span>
+          <span class="stat-val neu">≈ 0.0%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">🔵 近20年</span>
+          <span class="stat-val neu">≈ 0.0%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">🟢 近10年</span>
+          <span class="stat-val pos">+0.1%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">🔷 選後年</span>
+          <span class="stat-val neg-c">-0.8%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">🗓️ 全年月份排名</span>
+          <span class="stat-val neu">倒數第2</span>
+        </div>
+      </div>
+      <div class="alert-box">
+        <h3>🚨 風險警示</h3>
+        <ul>
+          <li>選後年（如2025年）八月歷史表現尤為疲弱，下行風險顯著放大</li>
+          <li>八月進入傳統淡季，機構法人陸續休假，成交量萎縮易放大波動</li>
+          <li>緊接在後的九月為全年最差月份，八九月合計是全年最危險區間</li>
+          <li>歷史上多次重大修正（1990、1998、2015）均在此季節發生</li>
+          <li>建議此時降低持倉槓桿，保留現金等待十月後的傳統旺季反彈</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 5: Strategy -->
+  <div class="slide slide-5">
+    <div class="slide-title">四大 <span>應對策略</span></div>
+    <div class="slide-desc">根據季節性規律優化投資組合配置</div>
+    <div class="strategy-grid">
+      <div class="s-card s1">
+        <div class="s-num">01</div>
+        <h3>🛡️ 降低風險敞口</h3>
+        <p>七月漲勢後適度獲利了結，八至九月將權益類資產比例調降至標準配置以下，以防禦型部位為主。</p>
+      </div>
+      <div class="s-card s2">
+        <div class="s-num">02</div>
+        <h3>💰 增持現金與避險</h3>
+        <p>提高現金比例或配置短期公債、黃金等避險資產，靜待波動帶來的更佳進場機會。</p>
+      </div>
+      <div class="s-card s3">
+        <div class="s-num">03</div>
+        <h3>🎯 蓄勢等待十一月</h3>
+        <p>歷史數據顯示十一月為全年最強月份之一（近十年 +4.0%），十月底至十一月初是長期多頭的關鍵進場窗口。</p>
+      </div>
+      <div class="s-card s4">
+        <div class="s-num">04</div>
+        <h3>📐 紀律勝於情緒</h3>
+        <p>季節性規律是機率優勢，非絕對保證。搭配總體面、基本面共同判斷，嚴守停損紀律，才能長期致勝。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 6: Conclusion -->
+  <div class="slide slide-6">
+    <div class="big-icon">🔔</div>
+    <h2>歷史不會重演，<span>但往往押韻</span></h2>
+    <p class="quote">
+      74年的市場數據告訴我們：八月到九月是全年最需謹慎的兩個月。<br>
+      了解季節性規律不是為了恐慌，而是為了在市場波動時，<br>
+      比他人更沉著、更有準備地做出決策。
+    </p>
+    <p class="source">
+      資料來源：Carson Investment Research／YCharts（1950–2024）&nbsp;|&nbsp; 本簡報僅供參考，不構成投資建議
+    </p>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav">
+  <button id="prev" onclick="changeSlide(-1)" disabled>← 上一頁</button>
+  <div class="dots" id="dots"></div>
+  <span class="page-indicator" id="pageInd">1 / 6</span>
+  <button id="next" onclick="changeSlide(1)">下一頁 →</button>
+</div>
+
+<script>
+  // ── Chart data ──
+  const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  const data = {
+    since1950: [1.0, 0.1, 1.1, 1.4, 0.3, 0.1, 1.3, 0.0, -0.5, 0.9, 1.8, 1.4],
+    past20:    [0.1, 0.1, 1.3, 1.8, 0.4, -0.1, 2.5, 0.0, -0.5, 1.0, 2.2, 0.6],
+    past10:    [0.8, 0.1, 0.6, 1.2, 1.0, 1.1, 3.3, 0.1, -2.5, 1.5, 4.0, -0.1],
+    election:  [0.6,-1.5, 0.7, 1.7, 1.6,-0.2, 2.1,-0.8,-0.5, 1.3, 1.6, 0.3]
+  };
+  const colors = ['#d97706','#3b82f6','#22c55e','#1e3a8a'];
+  const maxVal = 4.5;
+  const chartH = 228;
+  const zeroY = chartH * (maxVal / (maxVal * 2));
+
+  function buildChart() {
+    const wrap = document.getElementById('chart');
+    months.forEach((m, i) => {
+      const group = document.createElement('div');
+      group.className = 'month-group';
+      const barsDiv = document.createElement('div');
+      barsDiv.className = 'bars';
+
+      const series = [data.since1950[i], data.past20[i], data.past10[i], data.election[i]];
+      series.forEach((val, si) => {
+        const bar = document.createElement('div');
+        bar.className = 'bar' + (val < 0 ? ' neg' : '');
+        const px = Math.abs(val) / maxVal * (chartH / 2);
+        bar.style.height = px + 'px';
+        bar.style.background = colors[si];
+        if (val >= 0) {
+          bar.style.alignSelf = 'flex-end';
+        } else {
+          bar.style.alignSelf = 'flex-start';
+          bar.style.marginTop = (chartH / 2) + 'px';
+          bar.style.borderRadius = '0 0 2px 2px';
+        }
+        barsDiv.appendChild(bar);
+      });
+
+      const label = document.createElement('div');
+      label.className = 'month-label';
+      label.textContent = m;
+
+      group.appendChild(barsDiv);
+      group.appendChild(label);
+      wrap.appendChild(group);
+
+      // highlight August (index 7)
+      if (i === 7) {
+        group.dataset.highlight = 'true';
+        setTimeout(() => {
+          const rect = group.getBoundingClientRect();
+          const wrapRect = wrap.getBoundingClientRect();
+          const box = document.createElement('div');
+          box.className = 'highlight-box';
+          box.style.left   = (group.offsetLeft - 8) + 'px';
+          box.style.width  = (group.offsetWidth + 16) + 'px';
+          box.style.bottom = '24px';
+          box.style.top    = '4px';
+          wrap.appendChild(box);
+        }, 100);
+      }
+    });
+  }
+  buildChart();
+
+  // ── Slide navigation ──
+  let current = 0;
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  const dotsEl = document.getElementById('dots');
+
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dotsEl.appendChild(d);
+  });
+
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    dotsEl.children[current].classList.remove('active');
+    current = n;
+    slides[current].classList.add('active');
+    dotsEl.children[current].classList.add('active');
+    document.getElementById('pageInd').textContent = (current+1) + ' / ' + total;
+    document.getElementById('prev').disabled = current === 0;
+    document.getElementById('next').disabled = current === total - 1;
+  }
+
+  function changeSlide(dir) { goTo(current + dir); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { if (current < total-1) changeSlide(1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { if (current > 0)       changeSlide(-1); }
+  });
+</script>
+</body>
+</html>
