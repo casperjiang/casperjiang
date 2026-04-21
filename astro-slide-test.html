@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>命盤解讀 2026</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  width:100vw; height:100vh;
+  background: #0a0a1a;
+  display:flex; align-items:center; justify-content:center;
+  font-family: 'Georgia', 'Microsoft JhengHei', serif;
+}
+.slide {
+  width: 960px; height: 540px;
+  background: radial-gradient(ellipse at 20% 50%, #1a0a3a 0%, #0a0a1a 60%);
+  border: 1px solid #2a1a4a;
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px 80px;
+}
+.stars { position:absolute; top:0; left:0; width:100%; height:100%; }
+.star {
+  position:absolute; background:#fff; border-radius:50%;
+  animation: twinkle 3s infinite alternate;
+}
+@keyframes twinkle { 0%{opacity:0.2} 100%{opacity:0.9} }
+.circle-deco {
+  position:absolute; right:-80px; top:50%;
+  transform:translateY(-50%);
+  width:420px; height:420px;
+  border-radius:50%;
+  border: 1px solid rgba(180,120,255,0.15);
+}
+.circle-deco::before {
+  content:'';
+  position:absolute; inset:30px;
+  border-radius:50%;
+  border: 1px solid rgba(180,120,255,0.1);
+}
+.circle-deco::after {
+  content:'';
+  position:absolute; inset:70px;
+  border-radius:50%;
+  border: 1px solid rgba(180,120,255,0.08);
+}
+.symbol {
+  position:absolute; right:120px; top:50%;
+  transform:translateY(-50%);
+  font-size:120px;
+  opacity:0.08;
+  color:#c084fc;
+}
+.tag {
+  display:inline-block;
+  font-size:11px; letter-spacing:3px;
+  color:#a78bfa; text-transform:uppercase;
+  border:1px solid #4c1d95;
+  padding:5px 14px; border-radius:20px;
+  margin-bottom:28px;
+  width:fit-content;
+}
+h1 {
+  font-size:48px; font-weight:400;
+  color:#f5f0ff;
+  line-height:1.15;
+  margin-bottom:18px;
+}
+h1 strong { color:#c084fc; font-weight:700; }
+.subtitle {
+  font-size:15px; color:#8b7aa8;
+  line-height:1.8; max-width:520px;
+  margin-bottom:40px;
+}
+.footer {
+  position:absolute; bottom:28px; left:80px; right:80px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.footer-left { font-size:11px; color:#4a3a6a; letter-spacing:1px; }
+.footer-right { display:flex; gap:6px; }
+.dot { width:6px; height:6px; border-radius:50%; background:#2a1a4a; }
+.dot.active { background:#a78bfa; }
+.line-deco {
+  position:absolute; left:0; top:0; bottom:0;
+  width:3px;
+  background: linear-gradient(to bottom, transparent, #7c3aed, transparent);
+}
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="line-deco"></div>
+  <div class="circle-deco"></div>
+  <div class="symbol">♌</div>
+  <div class="stars">
+    <div class="star" style="width:2px;height:2px;top:12%;left:55%;animation-delay:0s"></div>
+    <div class="star" style="width:1px;height:1px;top:25%;left:65%;animation-delay:0.5s"></div>
+    <div class="star" style="width:2px;height:2px;top:18%;left:75%;animation-delay:1s"></div>
+    <div class="star" style="width:1px;height:1px;top:40%;left:60%;animation-delay:1.5s"></div>
+    <div class="star" style="width:2px;height:2px;top:70%;left:70%;animation-delay:0.8s"></div>
+    <div class="star" style="width:1px;height:1px;top:80%;left:55%;animation-delay:0.3s"></div>
+    <div class="star" style="width:2px;height:2px;top:60%;left:80%;animation-delay:1.2s"></div>
+    <div class="star" style="width:1px;height:1px;top:30%;left:85%;animation-delay:0.7s"></div>
+  </div>
+  <div class="tag">占星命盤解讀 · 2026</div>
+  <h1>你不是靠服從體制<br>發光的人，<br><strong>你是靠知識與影響力</strong><br>成就的人。</h1>
+  <p class="subtitle">命盤主軸 · 2026 運勢 · 五年走向 · 職涯策略 · 考試攻略</p>
+  <div class="footer">
+    <div class="footer-left">PERSONAL ASTROLOGY REPORT · 2026</div>
+    <div class="footer-right">
+      <div class="dot active"></div>
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      <div class="dot"></div><div class="dot"></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
