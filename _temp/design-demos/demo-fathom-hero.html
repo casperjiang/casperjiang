@@ -436,6 +436,42 @@
     }
 
     nav, .ticker-bar, .hero { position: relative; z-index: 1; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav {
+        padding: 0 20px;
+      }
+      .nav-links { display: none; }
+
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 40px;
+        padding: 40px 20px 60px;
+      }
+
+      .hero h1 {
+        font-size: 38px;
+        letter-spacing: -1px;
+      }
+
+      .hero-sub { font-size: 14px; }
+
+      .hero-cta-row { flex-wrap: wrap; gap: 14px; }
+
+      .hero-stats { gap: 24px; }
+      .stat-num   { font-size: 22px; }
+
+      .dashboard { margin: 0; }
+
+      .dash-chart { padding: 16px 16px 6px; }
+      .chart-price { font-size: 20px; }
+
+      .dash-research { padding: 10px 16px 16px; }
+
+      .insight-card { padding: 10px 12px; }
+      .insight-text { font-size: 11px; }
+    }
   </style>
 </head>
 <body>
