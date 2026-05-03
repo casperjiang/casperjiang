@@ -213,25 +213,42 @@ def main():
             name=f"EW Impulse (score={best_wave.score.total})",
         ), row=1, col=1)
 
-    # ── Fibonacci 時間窗口 ────────────────────────────────────────────
+    # ── Fibonacci 時間窗口（XTAI 台股開市日曆）────────────────────────
     show_fib_nums = {5, 8, 13, 21}
+    last_hist_date = dates_arr[-1]
+
     for zone in fib_zones:
         if zone.fib_number not in show_fib_nums:
             continue
         if zone.date_approx is None:
             continue
-        bi = zone.bar_index
-        d0 = dates_arr[max(0, bi - 1)] if bi < len(dates_arr) else dates_arr[-1]
-        d1 = dates_arr[min(len(dates_arr) - 1, bi + 1)]
+
+        zone_date = pd.Timestamp(zone.date_approx)
+        weekday_zh = ["一","二","三","四","五","六","日"][zone_date.weekday()]
+        label_text = (f"T{zone.fib_number}<br>"
+                      f"{zone_date.strftime('%m/%d')}<br>"
+                      f"週{weekday_zh}")
+
+        if zone.bar_index < len(dates_arr):
+            # 歷史資料內：用 K 線 x 軸位置
+            bi = zone.bar_index
+            d0 = dates_arr[max(0, bi - 1)]
+            d1 = dates_arr[min(len(dates_arr) - 1, bi + 1)]
+            x_label = dates_arr[bi]
+        else:
+            # 未來投影：直接用日期（Plotly 會正確定位在 x 軸）
+            d0 = zone_date - pd.Timedelta(days=1)
+            d1 = zone_date + pd.Timedelta(days=1)
+            x_label = zone_date
+
         fig.add_vrect(x0=d0, x1=d1,
             fillcolor=FIB_TIME_FILL, opacity=1.0,
             line_color=FIB_TIME_BORDER, line_width=1, row=1, col=1)
         fig.add_annotation(
-            x=dates_arr[min(bi, len(dates_arr) - 1)],
-            y=recent_high * 0.998,
-            text=f"T{zone.fib_number}",
-            showarrow=False,
-            font=dict(size=9, color="#fde047"), row=1, col=1)
+            x=x_label, y=recent_high * 0.998,
+            text=label_text,
+            showarrow=False, align="center",
+            font=dict(size=8, color="#fde047"), row=1, col=1)
 
     # ── 成交量副圖 ───────────────────────────────────────────────────
     vol_colors = [
@@ -254,8 +271,15 @@ def main():
     fib50_sl  = sl_fibs[4].price   # 50% 半對數
     wave_score_text = f"{best_wave.score.total}" if best_wave else "─"
 
-    near_zones = [z for z in fib_zones
-                  if z.fib_number in show_fib_nums and z.date_approx is not None]
+    # 時間窗口說明（含台股開市日）
+    tz_lines = []
+    for z in fib_zones:
+        if z.fib_number not in show_fib_nums or z.date_approx is None:
+            continue
+        dt = pd.Timestamp(z.date_approx)
+        wd = ["一","二","三","四","五","六","日"][dt.weekday()]
+        suffix = "" if z.bar_index < len(dates_arr) else "（投影）"
+        tz_lines.append(f"  T{z.fib_number:>2d}  {dt.strftime('%m/%d')} 週{wd}{suffix}")
 
     info_lines = [
         f"<b>TAIEX 日線（^TWII）</b>",
@@ -268,12 +292,9 @@ def main():
         f"50% 半對數：{fib50_sl:,.0f}",
         "──────────────────",
         f"EW 波浪分：{wave_score_text}",
-        f"Fib 時間窗：T5 T8 T13 T21",
+        "Fib 時間窗（XTAI）",
+        *tz_lines,
     ]
-    if near_zones:
-        next_z = near_zones[0]
-        info_lines.append(f"下一窗口：T{next_z.fib_number} "
-                          f"({str(next_z.date_approx)[:10]})")
 
     fig.add_annotation(
         x=0.985, y=0.035,

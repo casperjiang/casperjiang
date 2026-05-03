@@ -2,6 +2,7 @@
 fib_time_engine.py — Fibonacci Time Cycle Engine
 Core time-ratio logic adapted from: github.com/DrEdwardPCB/python-taew (Alternative method)
 Fibonacci time zones (1,1,2,3,5,8,13,21,34,55...) added independently.
+台股開市日曆：pandas_market_calendars XTAI（含國定假日）
 """
 from __future__ import annotations
 from dataclasses import dataclass
@@ -21,9 +22,32 @@ WAVE_TIME_RATIOS = {
 FIB_SEQUENCE = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610]
 
 
+def _build_trading_calendar(
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    market: str = "XTAI",
+) -> pd.DatetimeIndex:
+    """
+    取得指定市場的開市日 DatetimeIndex。
+    優先使用 pandas_market_calendars（含台灣國定假日）；
+    若未安裝則退回純工作日（BDay）。
+    """
+    try:
+        import pandas_market_calendars as mcal
+        cal      = mcal.get_calendar(market)
+        schedule = cal.schedule(
+            start_date=start.strftime("%Y-%m-%d"),
+            end_date=end.strftime("%Y-%m-%d"),
+        )
+        return pd.DatetimeIndex(schedule.index.normalize())
+    except Exception:
+        # 退回工作日（不含假日）
+        return pd.bdate_range(start=start, end=end)
+
+
 @dataclass
 class TimeTarget:
-    bar_offset: int          # bars from reference point
+    bar_offset: int
     date_approx: pd.Timestamp | None
     ratio: float
     label: str
@@ -32,31 +56,33 @@ class TimeTarget:
 
 @dataclass
 class TimeZone:
-    bar_index: int
+    bar_index:   int
     date_approx: pd.Timestamp | None
-    fib_number: int
+    fib_number:  int
+    is_trading_day: bool = True   # 是否為確認的開市日
 
 
 class FibTimeEngine:
     """
-    Fibonacci time cycle projector for Taiwan Futures.
+    Fibonacci time cycle projector for Taiwan markets.
 
-    Two modes:
-    1. Wave timing validation — checks if a wave's bar count falls within
-       Fibonacci ratio constraints (from python-taew Alternative method).
-    2. Fibonacci time zones — projects future turning-point windows from
-       a reference bar using the Fibonacci number sequence.
+    fibonacci_time_zones() 現在：
+    - 歷史資料範圍內：直接查 OHLC DatetimeIndex（最準確）
+    - 超出資料範圍：用 XTAI 台股開市日曆推算（含國定假日）
     """
 
     def __init__(
         self,
         wave_time_ratios: dict = None,
-        fib_sequence: list[int] = None,
-        bars_per_year: int = 252,
+        fib_sequence:     list[int] = None,
+        bars_per_year:    int = 252,
+        market:           str = "XTAI",
     ):
-        self.wtr = wave_time_ratios or WAVE_TIME_RATIOS
-        self.fib_seq = fib_sequence or FIB_SEQUENCE
+        self.wtr          = wave_time_ratios or WAVE_TIME_RATIOS
+        self.fib_seq      = fib_sequence or FIB_SEQUENCE
         self.bars_per_year = bars_per_year
+        self.market       = market
+        self._future_cal: pd.DatetimeIndex | None = None   # 快取
 
     # ------------------------------------------------------------------
     # Wave timing validation (python-taew Alternative logic)
@@ -118,7 +144,7 @@ class FibTimeEngine:
         return targets
 
     # ------------------------------------------------------------------
-    # Fibonacci time zones (classic Gann / EW tool)
+    # Fibonacci time zones（含台股開市日曆）
     # ------------------------------------------------------------------
 
     def fibonacci_time_zones(
@@ -126,19 +152,50 @@ class FibTimeEngine:
         start_bar: int,
         dates: pd.DatetimeIndex | None = None,
         max_zones: int = 13,
+        lookahead_days: int = 500,
     ) -> list[TimeZone]:
         """
-        Project future time zones from start_bar using Fibonacci sequence.
-        These mark potential turning-point windows.
+        從 start_bar 起算，用 Fibonacci 數列投影未來轉折時間窗口。
+
+        - 歷史資料範圍內（bar_idx < len(dates)）：直接查 dates[]
+        - 超出資料範圍：用 XTAI 台股開市日曆推算真實開市日
+          （自動排除週末與國定假日）
         """
+        # 建立未來開市日曆（超出資料範圍時使用）
+        future_cal: pd.DatetimeIndex | None = None
+        if dates is not None and len(dates) > 0:
+            last_date  = dates[-1]
+            future_end = last_date + pd.Timedelta(days=lookahead_days)
+            future_cal = _build_trading_calendar(
+                last_date + pd.Timedelta(days=1), future_end, self.market
+            )
+
         zones: list[TimeZone] = []
         for fib_n in self.fib_seq[:max_zones]:
             bar_idx = start_bar + fib_n
-            date = dates[bar_idx] if (dates is not None and bar_idx < len(dates)) else None
+
+            if dates is not None and bar_idx < len(dates):
+                # 在歷史資料內 → 直接取日期
+                date = dates[bar_idx]
+                is_trading = True
+            elif future_cal is not None:
+                # 超出資料範圍 → 從未來開市日曆取第幾個交易日
+                overflow = bar_idx - len(dates)   # 超出幾格
+                if 0 <= overflow < len(future_cal):
+                    date = future_cal[overflow]
+                    is_trading = True
+                else:
+                    date = None
+                    is_trading = False
+            else:
+                date = None
+                is_trading = False
+
             zones.append(TimeZone(
                 bar_index=bar_idx,
                 date_approx=date,
                 fib_number=fib_n,
+                is_trading_day=is_trading,
             ))
         return zones
 
