@@ -283,16 +283,73 @@ def run_analysis(df: pd.DataFrame, title: str) -> dict:
 # 3. CLI 主程式
 # ================================================================
 
+def load_input_csv(path: str, start: str | None = None) -> pd.DataFrame:
+    """
+    載入本機 CSV（支援 UTF-8 / CP950）。
+    自動跳過 ^TWII 等 metadata 列，回傳乾淨的 OHLCV DataFrame。
+    """
+    for enc in ("utf-8-sig", "utf-8", "cp950"):
+        try:
+            raw = pd.read_csv(path, encoding=enc)
+            break
+        except Exception:
+            continue
+    else:
+        raise RuntimeError(f"無法讀取 CSV：{path}")
+
+    # 移除 Date 欄為 NaN 或含 ticker symbol 的 metadata 列
+    raw = raw.dropna(subset=[raw.columns[0]])
+    date_col = raw.columns[0]
+    raw = raw[~raw[date_col].astype(str).str.startswith("^")]
+    raw = raw[~raw[date_col].astype(str).str.strip().isin(["Date","日期","時間"])]
+
+    # 欄位名稱正規化
+    col_map = {}
+    for c in raw.columns:
+        lc = c.lower().strip()
+        if lc in ("date","日期","時間"):       col_map[c] = "Date"
+        elif lc in ("open","開盤"):            col_map[c] = "Open"
+        elif lc in ("high","最高"):            col_map[c] = "High"
+        elif lc in ("low","最低"):             col_map[c] = "Low"
+        elif lc in ("close","收盤","adj close"): col_map[c] = "Close"
+        elif lc in ("volume","成交量"):        col_map[c] = "Volume"
+    raw = raw.rename(columns=col_map)
+
+    raw["Date"] = pd.to_datetime(raw["Date"], errors="coerce")
+    for col in ["Open","High","Low","Close","Volume"]:
+        if col in raw.columns:
+            raw[col] = pd.to_numeric(
+                raw[col].astype(str).str.replace(",",""), errors="coerce"
+            )
+
+    raw = raw.dropna(subset=["Date","Close"]).sort_values("Date")
+    raw = raw.set_index("Date")
+
+    # 補 Open/High/Low 若缺失（TWSE 收盤-only 資料）
+    for col in ["Open","High","Low"]:
+        if col not in raw.columns or raw[col].isna().all():
+            raw[col] = raw["Close"]
+    if "Volume" not in raw.columns:
+        raw["Volume"] = 0
+
+    if start:
+        raw = raw[raw.index >= pd.Timestamp(start)]
+
+    return raw[["Open","High","Low","Close","Volume"]]
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="台灣大盤/股票 K 線分析圖更新工具"
     )
     parser.add_argument("--symbol",      default="TAIEX",
                         help="代號（TAIEX / ^TWII / 股票代號）")
-    parser.add_argument("--start",       default="2025-01-01",
-                        help="起始日期 YYYY-MM-DD")
+    parser.add_argument("--start",       default=None,
+                        help="起始日期 YYYY-MM-DD（不指定則用全部資料）")
     parser.add_argument("--end",         default=None,
                         help="結束日期 YYYY-MM-DD（預設今天）")
+    parser.add_argument("--input-csv",   default=None, dest="input_csv",
+                        help="本機 CSV 路徑（優先於 API）")
     parser.add_argument("--output-html", default="TAIEX_latest_analysis.html",
                         dest="output_html")
     parser.add_argument("--output-csv",  default="TAIEX_latest_daily.csv",
@@ -307,15 +364,24 @@ def main():
     print(f"\n{'='*55}")
     print(f"  台灣大盤分析圖更新")
     print(f"  Symbol : {args.symbol}")
-    print(f"  Period : {args.start} → {end_date}")
     print(f"{'='*55}\n")
 
     # ── 取得資料 ────────────────────────────────────────────────────
-    try:
-        df, source = fetch_data(args.symbol, args.start, end_date)
-    except RuntimeError as e:
-        print(f"\n[ERROR] {e}")
-        sys.exit(1)
+    if args.input_csv:
+        print(f"  [資料] 讀取本機 CSV：{args.input_csv}")
+        try:
+            df = load_input_csv(args.input_csv, start=args.start)
+            source = f"本機 CSV（{os.path.basename(args.input_csv)}）"
+        except Exception as e:
+            print(f"\n[ERROR] CSV 讀取失敗：{e}")
+            sys.exit(1)
+    else:
+        try:
+            df, source = fetch_data(args.symbol,
+                                    args.start or "2025-01-01", end_date)
+        except RuntimeError as e:
+            print(f"\n[ERROR] {e}")
+            sys.exit(1)
 
     latest_date  = df.index[-1].strftime("%Y-%m-%d")
     latest_close = df["Close"].iloc[-1]

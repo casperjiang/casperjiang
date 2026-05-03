@@ -351,11 +351,11 @@ class TAVisualizer:
         ]
 
         fig.add_annotation(
-            x=1.0, y=0.99,
+            x=0.985, y=0.035,
             xref="paper", yref="paper",
             text="<br>".join(lines),
             showarrow=False, align="left",
-            xanchor="right", yanchor="top",
+            xanchor="right", yanchor="bottom",
             bgcolor="rgba(13,17,23,0.88)",
             bordercolor="#30363d",
             borderwidth=1, borderpad=8,
