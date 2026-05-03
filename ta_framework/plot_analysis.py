@@ -373,7 +373,7 @@ def main():
     # 11. 輸出
     # ================================================================
     out = os.path.join(os.path.dirname(__file__), "txf_analysis.html")
-    fig.write_html(out, include_plotlyjs="cdn")
+    fig.write_html(out, include_plotlyjs=True)
     print(f"圖表已儲存：{out}")
     fig.show()
 
