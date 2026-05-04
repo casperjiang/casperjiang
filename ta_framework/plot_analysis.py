@@ -271,6 +271,16 @@ def main():
     fib50_sl  = sl_fibs[4].price   # 50% 半對數
     wave_score_text = f"{best_wave.score.total}" if best_wave else "─"
 
+    # 最新箭頭訊號（Gann Swing 轉折點）
+    latest_pivot = swing_result.pivots[-1] if swing_result.pivots else None
+    if latest_pivot is not None:
+        arrow_dir  = "▲ 向上（低點確認）" if latest_pivot.direction == SwingDir.UP else "▼ 向下（高點確認）"
+        arrow_date = pd.Timestamp(latest_pivot.date).strftime("%Y-%m-%d")
+        arrow_price = f"{latest_pivot.price:,.0f}"
+        arrow_line = f"  {arrow_date}  {arrow_price}  {arrow_dir}"
+    else:
+        arrow_line = "  ─"
+
     # 時間窗口說明（含台股開市日）
     tz_lines = []
     for z in fib_zones:
@@ -292,6 +302,10 @@ def main():
         f"50% 半對數：{fib50_sl:,.0f}",
         "──────────────────",
         f"EW 波浪分：{wave_score_text}",
+        "──────────────────",
+        "<b>最新箭頭訊號</b>",
+        arrow_line,
+        "──────────────────",
         "Fib 時間窗（XTAI）",
         *tz_lines,
     ]
