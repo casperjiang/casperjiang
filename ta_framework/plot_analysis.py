@@ -274,7 +274,8 @@ def main():
     # 最新箭頭訊號（Gann Swing 轉折點）
     latest_pivot = swing_result.pivots[-1] if swing_result.pivots else None
     if latest_pivot is not None:
-        arrow_dir  = "▲ 向上（低點確認）" if latest_pivot.direction == SwingDir.UP else "▼ 向下（高點確認）"
+        # SwingDir.UP = swing HIGH（高點確認，圖上紅▼）; SwingDir.DOWN = swing LOW（低點確認，圖上綠▲）
+        arrow_dir  = "▼ 向下（高點確認）" if latest_pivot.direction == SwingDir.UP else "▲ 向上（低點確認）"
         arrow_date = pd.Timestamp(latest_pivot.date).strftime("%Y-%m-%d")
         arrow_price = f"{latest_pivot.price:,.0f}"
         arrow_line = f"  {arrow_date}  {arrow_price}  {arrow_dir}"
