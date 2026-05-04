@@ -42,8 +42,8 @@ FIB_TIME_BORDER= "rgba(250,204,21,0.6)"
 
 CSV_PATH = (
     sys.argv[1] if len(sys.argv) > 1 else
-    "/root/.claude/uploads/78a57da5-3044-4305-9992-4022e6a95291/"
-    "4a678964-TAIEX_History_yfinance_20260504_updated.csv"
+    "/root/.claude/uploads/d7ceab03-ddf2-421f-affd-d3cc5286d85b/"
+    "beda256f-TAIEX_History_yfinance_20260504_updated.csv"
 )
 OUTPUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "txf_analysis.html")
 
