@@ -105,14 +105,16 @@ def build_chart(
     # ── X 軸設定 ────────────────────────────────────────────────────────
     if intraday:
         dt_fmt   = '%Y-%m-%d %H:%M'
-        # 每根 K 棒用時間字串作為 category，確保完全等距無間隙
-        x_arr    = [d.strftime(dt_fmt) for d in dates_arr]
-        _ds      = {d: d.strftime(dt_fmt) for d in dates_arr}   # date → str
-        xi_start = dates_arr[max(0, n - 80)].strftime(dt_fmt)
-        xi_end   = dates_arr[-1].strftime(dt_fmt)
+        # 純數字字串作為 category，Plotly 無法識別為日期，不插入空白類別
+        x_arr    = [str(i) for i in range(n)]
+        _ds      = {d: str(i) for i, d in enumerate(dates_arr)}   # date → "0","1"...
+        xi_start = str(max(0, n - 80))
+        xi_end   = str(n - 1)
         step     = max(1, n // 30)
-        t_vals   = [x_arr[i] for i in range(0, n, step)]
+        t_vals   = [str(i) for i in range(0, n, step)]
         t_text   = [dates_arr[i].strftime('%m/%d\n%H:%M') for i in range(0, n, step)]
+        # hover 用的時間標籤（逐棒）
+        hover_ts = [d.strftime(dt_fmt) for d in dates_arr]
     else:
         x_arr    = dates_arr
         xi_start = dates_arr[max(0, n - 80)]
@@ -120,7 +122,7 @@ def build_chart(
         dt_fmt   = '%Y-%m-%d'
 
     def _x(d):
-        """date → x 軸值（intraday 時轉為時間字串 category）。"""
+        """date → x 軸值（intraday 時轉為純數字字串 category）。"""
         if not intraday:
             return d
         if d is None:
@@ -182,9 +184,9 @@ def build_chart(
     # ── Candlestick ────────────────────────────────────────────────────
     ck = {}
     if intraday:
-        # x 值本身即為時間字串，直接顯示於 hover
+        ck["text"] = hover_ts
         ck["hovertemplate"] = (
-            "<b>%{x}</b><br>"
+            "<b>%{text}</b><br>"
             "O:%{open:,.0f} H:%{high:,.0f} L:%{low:,.0f} C:%{close:,.0f}"
             "<extra></extra>"
         )
@@ -198,9 +200,14 @@ def build_chart(
 
     # ── EMA 均線 ────────────────────────────────────────────────────────
     for period, color, width in EMA_SPECS:
+        ema_kwargs = {}
+        if intraday:
+            ema_kwargs["text"] = hover_ts
+            ema_kwargs["hovertemplate"] = f"EMA{period}: %{{y:,.0f}}<extra></extra>"
         fig.add_trace(go.Scatter(
             x=x_arr, y=emas[period],
             line=dict(color=color, width=width), name=f"EMA{period}",
+            **ema_kwargs,
         ), row=1, col=1)
 
     # ── Gann Swing 折線 ─────────────────────────────────────────────────
