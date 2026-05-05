@@ -82,28 +82,30 @@ def resample_ohlcv(daily: pd.DataFrame, rule: str) -> pd.DataFrame:
 
 
 def build_chart(
-    ohlc:            pd.DataFrame,
-    tf_label:        str,
-    output_path:     str,
-    swing_days:      int   = 2,
-    ignore_thresh:   float = 200,
-    peak_order:      int   = 5,
-    show_fib_time:   bool  = True,
-    use_rangebreaks: bool  = True,
+    ohlc:          pd.DataFrame,
+    tf_label:      str,
+    output_path:   str,
+    swing_days:    int          = 2,
+    ignore_thresh: float        = 200,
+    peak_order:    int          = 5,
+    show_fib_time: bool         = True,
+    rangebreaks:   list | None  = None,
 ) -> None:
     """
     建立單一時框的 K 線分析圖並輸出 HTML。
 
     Parameters
     ----------
-    ohlc            : OHLCV DataFrame（DatetimeIndex）
-    tf_label        : 顯示名稱，如 "日線" / "週線" / "月線"
-    output_path     : 輸出 HTML 路徑
-    swing_days      : Gann Swing 確認 bar 數
-    ignore_thresh   : Gann Swing 最小幅度門檻（點）
-    peak_order      : Elliott Wave 峰值偵測距離
-    show_fib_time   : 是否顯示 Fib 時間窗口（僅日線有意義）
-    use_rangebreaks : 是否移除週末空白（日線用 True，週/月用 False）
+    ohlc          : OHLCV DataFrame（DatetimeIndex）
+    tf_label      : 顯示名稱，如 "日線" / "週線" / "月線"
+    output_path   : 輸出 HTML 路徑
+    swing_days    : Gann Swing 確認 bar 數
+    ignore_thresh : Gann Swing 最小幅度門檻（點）
+    peak_order    : Elliott Wave 峰值偵測距離
+    show_fib_time : 是否顯示 Fib 時間窗口（僅日線有意義）
+    rangebreaks   : Plotly rangebreaks 清單；None = 不排除任何空白
+                    日線建議：[dict(bounds=["sat","mon"])]
+                    日內建議另加 pattern="hour" 排除非交易時段
     """
     close = ohlc["Close"]
 
@@ -354,7 +356,7 @@ def build_chart(
         color=TEXT, showline=True, linecolor="#30363d",
         tickfont=dict(color=TEXT, size=10),
     )
-    rb = [dict(bounds=["sat", "mon"])] if use_rangebreaks else []
+    rb = rangebreaks if rangebreaks is not None else []
 
     fig.update_layout(
         title=dict(
@@ -396,12 +398,14 @@ def main():
         monthly = resample_ohlcv(daily, "M")
     print(f"週線：{len(weekly)} 筆，月線：{len(monthly)} 筆")
 
+    RB_DAILY = [dict(bounds=["sat", "mon"])]
+
     # ── 日線 ─────────────────────────────────────────────────────────
     build_chart(
         daily, "日線",
         os.path.join(OUT_DIR, "txf_analysis.html"),
         swing_days=2, ignore_thresh=200, peak_order=5,
-        show_fib_time=True, use_rangebreaks=True,
+        show_fib_time=True, rangebreaks=RB_DAILY,
     )
 
     # ── 週線 ─────────────────────────────────────────────────────────
@@ -409,7 +413,7 @@ def main():
         weekly, "週線",
         os.path.join(OUT_DIR, "txf_analysis_weekly.html"),
         swing_days=2, ignore_thresh=500, peak_order=4,
-        show_fib_time=False, use_rangebreaks=False,
+        show_fib_time=False, rangebreaks=[],
     )
 
     # ── 月線 ─────────────────────────────────────────────────────────
@@ -417,7 +421,7 @@ def main():
         monthly, "月線",
         os.path.join(OUT_DIR, "txf_analysis_monthly.html"),
         swing_days=1, ignore_thresh=1000, peak_order=2,
-        show_fib_time=False, use_rangebreaks=False,
+        show_fib_time=False, rangebreaks=[],
     )
 
 
