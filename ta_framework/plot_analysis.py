@@ -95,7 +95,8 @@ def build_chart(
     """
     建立單一時框的 K 線分析圖並輸出 HTML。
 
-    intraday=True 時改用整數序列軸，徹底消除夜盤/換日/假日空白。
+    intraday=True 時改用 category 字串軸：每根 K 棒的時間字串作為類別，
+    Plotly 保證每個類別等距，無論中間跳過多少假日/換日都不會有空白。
     """
     close     = ohlc["Close"]
     dates_arr = ohlc.index
@@ -103,14 +104,15 @@ def build_chart(
 
     # ── X 軸設定 ────────────────────────────────────────────────────────
     if intraday:
-        x_arr    = list(range(n))
-        _di      = {d: i for i, d in enumerate(dates_arr)}
-        xi_start = max(0, n - 80)
-        xi_end   = n - 1
-        step     = max(1, n // 30)
-        t_vals   = list(range(0, n, step))
-        t_text   = [dates_arr[i].strftime('%m/%d\n%H:%M') for i in t_vals]
         dt_fmt   = '%Y-%m-%d %H:%M'
+        # 每根 K 棒用時間字串作為 category，確保完全等距無間隙
+        x_arr    = [d.strftime(dt_fmt) for d in dates_arr]
+        _ds      = {d: d.strftime(dt_fmt) for d in dates_arr}   # date → str
+        xi_start = dates_arr[max(0, n - 80)].strftime(dt_fmt)
+        xi_end   = dates_arr[-1].strftime(dt_fmt)
+        step     = max(1, n // 30)
+        t_vals   = [x_arr[i] for i in range(0, n, step)]
+        t_text   = [dates_arr[i].strftime('%m/%d\n%H:%M') for i in range(0, n, step)]
     else:
         x_arr    = dates_arr
         xi_start = dates_arr[max(0, n - 80)]
@@ -118,13 +120,13 @@ def build_chart(
         dt_fmt   = '%Y-%m-%d'
 
     def _x(d):
-        """date → x 軸值（intraday 時轉為整數索引）。"""
+        """date → x 軸值（intraday 時轉為時間字串 category）。"""
         if not intraday:
             return d
         if d is None:
             return None
         ts = d if isinstance(d, pd.Timestamp) else pd.Timestamp(d)
-        return _di.get(ts)
+        return _ds.get(ts)
 
     def _pxy(pivots, y_fn, txt_fn=None):
         """從 pivot list 萃取 (x, y[, text])，過濾無對應索引的點。"""
@@ -180,9 +182,9 @@ def build_chart(
     # ── Candlestick ────────────────────────────────────────────────────
     ck = {}
     if intraday:
-        ck["text"] = [d.strftime(dt_fmt) for d in dates_arr]
+        # x 值本身即為時間字串，直接顯示於 hover
         ck["hovertemplate"] = (
-            "<b>%{text}</b><br>"
+            "<b>%{x}</b><br>"
             "O:%{open:,.0f} H:%{high:,.0f} L:%{low:,.0f} C:%{close:,.0f}"
             "<extra></extra>"
         )
@@ -372,7 +374,8 @@ def build_chart(
         tickfont=dict(color=TEXT, size=10),
     )
     if intraday:
-        xa_extra = dict(tickvals=t_vals, ticktext=t_text)
+        # type="category" 使每個時間字串等距，完全無間隙
+        xa_extra = dict(type="category", tickvals=t_vals, ticktext=t_text)
     else:
         xa_extra = dict(rangebreaks=rangebreaks or [])
 
