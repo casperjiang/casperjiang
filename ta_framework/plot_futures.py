@@ -34,7 +34,15 @@ def load_sheet(path: str, sheet: str) -> pd.DataFrame:
     for col in ["Open", "High", "Low", "Close", "Volume"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
     df = df.dropna(subset=["Date", "Close"]).sort_values("Date").set_index("Date")
-    return df[["Open", "High", "Low", "Close", "Volume"]]
+    df = df[["Open", "High", "Low", "Close", "Volume"]]
+    # 過濾假K棒：連假期間資料商填入 Volume=0 且 OHLC 全相同的佔位列
+    fake = (
+        (df["Volume"] == 0) &
+        (df["Open"] == df["High"]) &
+        (df["High"] == df["Low"]) &
+        (df["Low"]  == df["Close"])
+    )
+    return df[~fake]
 
 
 def main():
