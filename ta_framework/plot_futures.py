@@ -50,20 +50,6 @@ def main():
 
     RB_DAILY = [dict(bounds=["sat", "mon"])]
 
-    # 60分：早盤空白 05:01–09:44，午後空白 13:46–15:59
-    RB_60MIN = [
-        dict(bounds=["sat", "mon"]),
-        dict(bounds=[5.01, 9.74],  pattern="hour"),
-        dict(bounds=[13.76, 15.99], pattern="hour"),
-    ]
-
-    # 15分：早盤空白 05:01–08:59，午後空白 13:46–15:14
-    RB_15MIN = [
-        dict(bounds=["sat", "mon"]),
-        dict(bounds=[5.01, 8.99],  pattern="hour"),
-        dict(bounds=[13.76, 15.24], pattern="hour"),
-    ]
-
     # ── 日線（9 年資料，完整分析）────────────────────────────────────
     build_chart(
         day_df, "日線（期貨）",
@@ -72,20 +58,20 @@ def main():
         show_fib_time=True, rangebreaks=RB_DAILY,
     )
 
-    # ── 60 分線（日內，排除非交易時段）──────────────────────────────
+    # ── 60 分線（整數序列軸，徹底消除夜盤/換日空白）──────────────────
     build_chart(
         m60_df, "60分線（期貨）",
         os.path.join(OUT_DIR, "txf_futures_60min.html"),
         swing_days=2, ignore_thresh=100, peak_order=5,
-        show_fib_time=False, rangebreaks=RB_60MIN,
+        show_fib_time=False, intraday=True,
     )
 
-    # ── 15 分線（日內，排除非交易時段）──────────────────────────────
+    # ── 15 分線（整數序列軸，徹底消除夜盤/換日空白）──────────────────
     build_chart(
         m15_df, "15分線（期貨）",
         os.path.join(OUT_DIR, "txf_futures_15min.html"),
         swing_days=2, ignore_thresh=50, peak_order=8,
-        show_fib_time=False, rangebreaks=RB_15MIN,
+        show_fib_time=False, intraday=True,
     )
 
 

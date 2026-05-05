@@ -85,35 +85,62 @@ def build_chart(
     ohlc:          pd.DataFrame,
     tf_label:      str,
     output_path:   str,
-    swing_days:    int          = 2,
-    ignore_thresh: float        = 200,
-    peak_order:    int          = 5,
-    show_fib_time: bool         = True,
-    rangebreaks:   list | None  = None,
+    swing_days:    int         = 2,
+    ignore_thresh: float       = 200,
+    peak_order:    int         = 5,
+    show_fib_time: bool        = True,
+    rangebreaks:   list | None = None,
+    intraday:      bool        = False,
 ) -> None:
     """
     建立單一時框的 K 線分析圖並輸出 HTML。
 
-    Parameters
-    ----------
-    ohlc          : OHLCV DataFrame（DatetimeIndex）
-    tf_label      : 顯示名稱，如 "日線" / "週線" / "月線"
-    output_path   : 輸出 HTML 路徑
-    swing_days    : Gann Swing 確認 bar 數
-    ignore_thresh : Gann Swing 最小幅度門檻（點）
-    peak_order    : Elliott Wave 峰值偵測距離
-    show_fib_time : 是否顯示 Fib 時間窗口（僅日線有意義）
-    rangebreaks   : Plotly rangebreaks 清單；None = 不排除任何空白
-                    日線建議：[dict(bounds=["sat","mon"])]
-                    日內建議另加 pattern="hour" 排除非交易時段
+    intraday=True 時改用整數序列軸，徹底消除夜盤/換日/假日空白。
     """
-    close = ohlc["Close"]
+    close     = ohlc["Close"]
+    dates_arr = ohlc.index
+    n         = len(ohlc)
+
+    # ── X 軸設定 ────────────────────────────────────────────────────────
+    if intraday:
+        x_arr    = list(range(n))
+        _di      = {d: i for i, d in enumerate(dates_arr)}
+        xi_start = max(0, n - 80)
+        xi_end   = n - 1
+        step     = max(1, n // 30)
+        t_vals   = list(range(0, n, step))
+        t_text   = [dates_arr[i].strftime('%m/%d\n%H:%M') for i in t_vals]
+        dt_fmt   = '%Y-%m-%d %H:%M'
+    else:
+        x_arr    = dates_arr
+        xi_start = dates_arr[max(0, n - 80)]
+        xi_end   = dates_arr[-1]
+        dt_fmt   = '%Y-%m-%d'
+
+    def _x(d):
+        """date → x 軸值（intraday 時轉為整數索引）。"""
+        if not intraday:
+            return d
+        if d is None:
+            return None
+        ts = d if isinstance(d, pd.Timestamp) else pd.Timestamp(d)
+        return _di.get(ts)
+
+    def _pxy(pivots, y_fn, txt_fn=None):
+        """從 pivot list 萃取 (x, y[, text])，過濾無對應索引的點。"""
+        xs, ys, ts = [], [], []
+        for p in pivots:
+            xv = _x(p.date)
+            if xv is None:
+                continue
+            xs.append(xv)
+            ys.append(y_fn(p))
+            if txt_fn:
+                ts.append(txt_fn(p))
+        return (xs, ys, ts) if txt_fn else (xs, ys)
 
     # ── EMA 計算 ────────────────────────────────────────────────────────
-    emas = {
-        period: close.ewm(span=period, adjust=False).mean()
-        for period, _, _ in EMA_SPECS
-    }
+    emas = {p: close.ewm(span=p, adjust=False).mean() for p, _, _ in EMA_SPECS}
 
     # ── Gann Swing ─────────────────────────────────────────────────────
     swing_eng    = SwingEngine(swing_days=swing_days, inside_down=True,
@@ -123,6 +150,7 @@ def build_chart(
     lows         = [p for p in swing_result.pivots if p.direction == SwingDir.DOWN]
     recent_high  = highs[-1].price if highs else ohlc["High"].max()
     recent_low   = lows[-1].price  if lows  else ohlc["Low"].min()
+    price_rng    = recent_high - recent_low
 
     # ── Fibonacci 價格 ──────────────────────────────────────────────────
     fib_eng  = FibPriceEngine()
@@ -135,49 +163,48 @@ def build_chart(
     up_patterns = wave_eng.find_impulse_waves(wave_pivots, direction="up")
     best_wave   = up_patterns[0] if up_patterns else None
 
-    # ── Fibonacci 時間週期（僅日線啟用）───────────────────────────────
+    # ── Fibonacci 時間週期（僅日線）─────────────────────────────────────
     fib_zones = []
     if show_fib_time and swing_result.pivots:
         time_eng  = FibTimeEngine()
         fib_zones = time_eng.fibonacci_time_zones(
-            swing_result.pivots[-1].index, dates=ohlc.index, max_zones=12
+            swing_result.pivots[-1].index, dates=dates_arr, max_zones=12
         )
 
     # ================================================================
     # 建立圖表
     # ================================================================
-    fig = make_subplots(
-        rows=2, cols=1,
-        shared_xaxes=True,
-        row_heights=[0.78, 0.22],
-        vertical_spacing=0.02,
-    )
-    dates_arr = ohlc.index
-    price_rng = recent_high - recent_low
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
+                        row_heights=[0.78, 0.22], vertical_spacing=0.02)
 
     # ── Candlestick ────────────────────────────────────────────────────
+    ck = {}
+    if intraday:
+        ck["text"] = [d.strftime(dt_fmt) for d in dates_arr]
+        ck["hovertemplate"] = (
+            "<b>%{text}</b><br>"
+            "O:%{open:,.0f} H:%{high:,.0f} L:%{low:,.0f} C:%{close:,.0f}"
+            "<extra></extra>"
+        )
     fig.add_trace(go.Candlestick(
-        x=dates_arr,
-        open=ohlc["Open"], high=ohlc["High"],
-        low=ohlc["Low"],   close=close,
+        x=x_arr, open=ohlc["Open"], high=ohlc["High"],
+        low=ohlc["Low"], close=close,
         increasing_line_color=UP_COLOR, decreasing_line_color=DN_COLOR,
         increasing_fillcolor=UP_COLOR,  decreasing_fillcolor=DN_COLOR,
-        line_width=1, name="TAIEX", showlegend=False,
+        line_width=1, name="TAIEX", showlegend=False, **ck,
     ), row=1, col=1)
 
-    # ── EMA 均線（13/21/55/89/144/233）─────────────────────────────────
+    # ── EMA 均線 ────────────────────────────────────────────────────────
     for period, color, width in EMA_SPECS:
         fig.add_trace(go.Scatter(
-            x=dates_arr, y=emas[period],
-            line=dict(color=color, width=width),
-            name=f"EMA{period}",
+            x=x_arr, y=emas[period],
+            line=dict(color=color, width=width), name=f"EMA{period}",
         ), row=1, col=1)
 
     # ── Gann Swing 折線 ─────────────────────────────────────────────────
+    sw_x, sw_y = _pxy(swing_result.pivots, lambda p: p.price)
     fig.add_trace(go.Scatter(
-        x=[p.date  for p in swing_result.pivots],
-        y=[p.price for p in swing_result.pivots],
-        mode="lines",
+        x=sw_x, y=sw_y, mode="lines",
         line=dict(color=SWING_CLR, width=1, dash="dot"),
         name="Gann Swing", opacity=0.7,
     ), row=1, col=1)
@@ -185,40 +212,37 @@ def build_chart(
     high_pivots = [p for p in swing_result.pivots if p.direction == SwingDir.UP]
     low_pivots  = [p for p in swing_result.pivots if p.direction == SwingDir.DOWN]
 
+    hp_x, hp_y, hp_t = _pxy(high_pivots,
+        lambda p: p.price + price_rng * 0.004,
+        lambda p: f"{p.price:,.0f}")
     fig.add_trace(go.Scatter(
-        x=[p.date for p in high_pivots],
-        y=[p.price + price_rng * 0.004 for p in high_pivots],
-        mode="markers+text",
+        x=hp_x, y=hp_y, mode="markers+text",
         marker=dict(symbol="triangle-down", color=DN_COLOR, size=7),
-        text=[f"{p.price:,.0f}" for p in high_pivots],
-        textposition="top center",
+        text=hp_t, textposition="top center",
         textfont=dict(size=8, color=DN_COLOR),
         name="Swing H", showlegend=False,
     ), row=1, col=1)
 
+    lp_x, lp_y, lp_t = _pxy(low_pivots,
+        lambda p: p.price - price_rng * 0.004,
+        lambda p: f"{p.price:,.0f}")
     fig.add_trace(go.Scatter(
-        x=[p.date for p in low_pivots],
-        y=[p.price - price_rng * 0.004 for p in low_pivots],
-        mode="markers+text",
+        x=lp_x, y=lp_y, mode="markers+text",
         marker=dict(symbol="triangle-up", color=UP_COLOR, size=7),
-        text=[f"{p.price:,.0f}" for p in low_pivots],
-        textposition="bottom center",
+        text=lp_t, textposition="bottom center",
         textfont=dict(size=8, color=UP_COLOR),
         name="Swing L", showlegend=False,
     ), row=1, col=1)
 
-    # ── Fibonacci 水平線（最近 80 根 K 線區間）─────────────────────────
+    # ── Fibonacci 水平線（最近 80 根 K 線）─────────────────────────────
     key_ratios = {0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0}
-    x_start    = dates_arr[max(0, len(dates_arr) - 80)]
-    x_end      = dates_arr[-1]
-
     for lv in lin_fibs:
         if lv.ratio not in key_ratios:
             continue
         fig.add_shape(type="line",
-            x0=x_start, x1=x_end, y0=lv.price, y1=lv.price,
+            x0=xi_start, x1=xi_end, y0=lv.price, y1=lv.price,
             line=dict(color=FIB_LIN, width=1, dash="dash"), row=1, col=1)
-        fig.add_annotation(x=x_end, y=lv.price,
+        fig.add_annotation(x=xi_end, y=lv.price,
             text=f"<b>{lv.ratio:.1%}</b> {lv.price:,.0f}",
             showarrow=False, xanchor="left",
             font=dict(size=9, color=FIB_LIN), xshift=4, row=1, col=1)
@@ -227,108 +251,102 @@ def build_chart(
     for lv in sl_fibs:
         if lv.ratio not in key_ratios:
             continue
-        key = f"{lv.ratio:.3f}"
-        if key in shown_sl:
+        k = f"{lv.ratio:.3f}"
+        if k in shown_sl:
             continue
-        shown_sl.add(key)
+        shown_sl.add(k)
         fig.add_shape(type="line",
-            x0=x_start, x1=x_end, y0=lv.price, y1=lv.price,
+            x0=xi_start, x1=xi_end, y0=lv.price, y1=lv.price,
             line=dict(color=FIB_SL, width=1, dash="dot"), row=1, col=1)
-        fig.add_annotation(x=x_start, y=lv.price,
+        fig.add_annotation(x=xi_start, y=lv.price,
             text=f"SL {lv.ratio:.1%} {lv.price:,.0f}",
             showarrow=False, xanchor="right",
             font=dict(size=8, color=FIB_SL), xshift=-4, row=1, col=1)
 
     # ── Elliott Wave ────────────────────────────────────────────────────
     if best_wave:
-        ew_pts = [wp for wp in best_wave.points if wp.date is not None]
-        fig.add_trace(go.Scatter(
-            x=[wp.date  for wp in ew_pts],
-            y=[wp.price for wp in ew_pts],
-            mode="lines+markers+text",
-            line=dict(color=EW_CLR, width=2),
-            marker=dict(color=EW_CLR, size=10, line=dict(color="white", width=1)),
-            text=[wp.label for wp in ew_pts],
-            textposition="top center",
-            textfont=dict(size=12, color=EW_CLR, family="Arial Black"),
-            name=f"EW Impulse (score={best_wave.score.total})",
-        ), row=1, col=1)
+        ew_raw = [wp for wp in best_wave.points if wp.date is not None]
+        ew_data = [(xv, wp) for wp in ew_raw if (xv := _x(wp.date)) is not None]
+        if ew_data:
+            fig.add_trace(go.Scatter(
+                x=[v[0] for v in ew_data],
+                y=[v[1].price for v in ew_data],
+                mode="lines+markers+text",
+                line=dict(color=EW_CLR, width=2),
+                marker=dict(color=EW_CLR, size=10, line=dict(color="white", width=1)),
+                text=[v[1].label for v in ew_data],
+                textposition="top center",
+                textfont=dict(size=12, color=EW_CLR, family="Arial Black"),
+                name=f"EW Impulse (score={best_wave.score.total})",
+            ), row=1, col=1)
 
-    # ── Fibonacci 時間窗口（僅日線）────────────────────────────────────
+    # ── Fibonacci 時間窗口（僅日線，intraday 略過）────────────────────
     show_fib_nums = {5, 8, 13, 21}
     tz_lines = []
-    for zone in fib_zones:
-        if zone.fib_number not in show_fib_nums or zone.date_approx is None:
-            continue
-        zone_date  = pd.Timestamp(zone.date_approx)
-        weekday_zh = ["一","二","三","四","五","六","日"][zone_date.weekday()]
-        label_text = (f"T{zone.fib_number}<br>"
-                      f"{zone_date.strftime('%m/%d')}<br>"
-                      f"週{weekday_zh}")
-
-        if zone.bar_index < len(dates_arr):
-            bi  = zone.bar_index
-            d0  = dates_arr[max(0, bi - 1)]
-            d1  = dates_arr[min(len(dates_arr) - 1, bi + 1)]
-            x_l = dates_arr[bi]
-        else:
-            d0  = zone_date - pd.Timedelta(days=1)
-            d1  = zone_date + pd.Timedelta(days=1)
-            x_l = zone_date
-
-        fig.add_vrect(x0=d0, x1=d1,
-            fillcolor=FIB_TIME_FILL, opacity=1.0,
-            line_color=FIB_TIME_BORDER, line_width=1, row=1, col=1)
-        fig.add_annotation(
-            x=x_l, y=recent_high * 0.998,
-            text=label_text,
-            showarrow=False, align="center",
-            font=dict(size=8, color="#fde047"), row=1, col=1)
-
-        suffix = "" if zone.bar_index < len(dates_arr) else "（投影）"
-        tz_lines.append(
-            f"  T{zone.fib_number:>2d}  {zone_date.strftime('%m/%d')} 週{weekday_zh}{suffix}"
-        )
+    if not intraday:
+        for zone in fib_zones:
+            if zone.fib_number not in show_fib_nums or zone.date_approx is None:
+                continue
+            zone_date  = pd.Timestamp(zone.date_approx)
+            weekday_zh = ["一","二","三","四","五","六","日"][zone_date.weekday()]
+            label_text = (f"T{zone.fib_number}<br>"
+                          f"{zone_date.strftime('%m/%d')}<br>"
+                          f"週{weekday_zh}")
+            if zone.bar_index < n:
+                bi  = zone.bar_index
+                d0  = dates_arr[max(0, bi - 1)]
+                d1  = dates_arr[min(n - 1, bi + 1)]
+                x_l = dates_arr[bi]
+            else:
+                d0  = zone_date - pd.Timedelta(days=1)
+                d1  = zone_date + pd.Timedelta(days=1)
+                x_l = zone_date
+            fig.add_vrect(x0=d0, x1=d1,
+                fillcolor=FIB_TIME_FILL, opacity=1.0,
+                line_color=FIB_TIME_BORDER, line_width=1, row=1, col=1)
+            fig.add_annotation(x=x_l, y=recent_high * 0.998,
+                text=label_text, showarrow=False, align="center",
+                font=dict(size=8, color="#fde047"), row=1, col=1)
+            suffix = "" if zone.bar_index < n else "（投影）"
+            tz_lines.append(
+                f"  T{zone.fib_number:>2d}  {zone_date.strftime('%m/%d')} 週{weekday_zh}{suffix}"
+            )
 
     # ── 成交量副圖 ──────────────────────────────────────────────────────
-    vol_colors = [
-        UP_COLOR if c >= o else DN_COLOR
-        for c, o in zip(ohlc["Close"], ohlc["Open"])
-    ]
+    vol_colors = [UP_COLOR if c >= o else DN_COLOR
+                  for c, o in zip(ohlc["Close"], ohlc["Open"])]
     fig.add_trace(go.Bar(
-        x=dates_arr, y=ohlc["Volume"],
+        x=x_arr, y=ohlc["Volume"],
         marker_color=vol_colors, opacity=0.6,
         name="Volume", showlegend=False,
     ), row=2, col=1)
 
     # ── 右下角資訊方塊 ──────────────────────────────────────────────────
     last_close = close.iloc[-1]
-    prev_close = close.iloc[-2] if len(close) > 1 else last_close
+    prev_close = close.iloc[-2] if n > 1 else last_close
     chg        = last_close - prev_close
     chg_pct    = chg / prev_close * 100
-    fib50_lin  = lin_fibs[4].price
-    fib50_sl   = sl_fibs[4].price
     wave_score = f"{best_wave.score.total}" if best_wave else "─"
 
     latest_pivot = swing_result.pivots[-1] if swing_result.pivots else None
     if latest_pivot:
         arrow_dir   = "▼ 向下（高點確認）" if latest_pivot.direction == SwingDir.UP \
                       else "▲ 向上（低點確認）"
-        arrow_date  = pd.Timestamp(latest_pivot.date).strftime("%Y-%m-%d")
-        arrow_price = f"{latest_pivot.price:,.0f}"
-        arrow_line  = f"  {arrow_date}  {arrow_price}  {arrow_dir}"
+        arrow_line  = (f"  {pd.Timestamp(latest_pivot.date).strftime(dt_fmt)}"
+                       f"  {latest_pivot.price:,.0f}  {arrow_dir}")
     else:
         arrow_line = "  ─"
 
+    last_dt_str = ohlc.index[-1].strftime(dt_fmt)
     info_lines = [
-        f"<b>TAIEX {tf_label}（^TWII）</b>",
-        f"資料截至：{ohlc.index[-1].strftime('%Y-%m-%d')}",
+        f"<b>TXFPM1 {tf_label}</b>",
+        f"資料截至：{last_dt_str}",
         f"收盤 {last_close:,.0f}　{chg:+,.0f}（{chg_pct:+.2f}%）",
         "──────────────────",
         f"Swing 高點：{recent_high:,.0f}",
         f"Swing 低點：{recent_low:,.0f}",
-        f"50% 線性　：{fib50_lin:,.0f}",
-        f"50% 半對數：{fib50_sl:,.0f}",
+        f"50% 線性　：{lin_fibs[4].price:,.0f}",
+        f"50% 半對數：{sl_fibs[4].price:,.0f}",
         "──────────────────",
         f"EW 波浪分：{wave_score}",
         "──────────────────",
@@ -339,42 +357,39 @@ def build_chart(
         info_lines += ["──────────────────", "Fib 時間窗（XTAI）", *tz_lines]
 
     fig.add_annotation(
-        x=0.985, y=0.035,
-        xref="paper", yref="paper",
+        x=0.985, y=0.035, xref="paper", yref="paper",
         text="<br>".join(info_lines),
-        showarrow=False, align="left",
-        xanchor="right", yanchor="bottom",
-        bgcolor="rgba(13,17,23,0.88)",
-        bordercolor="#30363d",
+        showarrow=False, align="left", xanchor="right", yanchor="bottom",
+        bgcolor="rgba(13,17,23,0.88)", bordercolor="#30363d",
         borderwidth=1, borderpad=8,
         font=dict(size=10, color=TEXT, family="monospace"),
     )
 
     # ── 版面樣式 ────────────────────────────────────────────────────────
     axis_style = dict(
-        gridcolor=GRID, gridwidth=1,
-        color=TEXT, showline=True, linecolor="#30363d",
+        gridcolor=GRID, gridwidth=1, color=TEXT,
+        showline=True, linecolor="#30363d",
         tickfont=dict(color=TEXT, size=10),
     )
-    rb = rangebreaks if rangebreaks is not None else []
+    if intraday:
+        xa_extra = dict(tickvals=t_vals, ticktext=t_text)
+    else:
+        xa_extra = dict(rangebreaks=rangebreaks or [])
 
     fig.update_layout(
         title=dict(
-            text=f"TAIEX {tf_label}分析（{ohlc.index[-1].strftime('%Y-%m-%d')}）",
+            text=f"TXFPM1 {tf_label}（{last_dt_str}）",
             font=dict(size=15, color=TEXT), x=0.03,
         ),
         paper_bgcolor=BG, plot_bgcolor=BG,
         autosize=True, height=700,
         margin=dict(l=50, r=10, t=50, b=40),
-        xaxis =dict(**axis_style, rangeslider_visible=False, rangebreaks=rb),
-        xaxis2=dict(**axis_style, rangebreaks=rb),
+        xaxis =dict(**axis_style, rangeslider_visible=False, **xa_extra),
+        xaxis2=dict(**axis_style, **xa_extra),
         yaxis =dict(**axis_style, title="點位", tickformat=","),
         yaxis2=dict(**axis_style, title="量",   tickformat=".2s"),
-        legend=dict(
-            orientation="h", x=0.01, y=1.02,
-            bgcolor="rgba(0,0,0,0)",
-            font=dict(color=TEXT, size=10),
-        ),
+        legend=dict(orientation="h", x=0.01, y=1.02,
+                    bgcolor="rgba(0,0,0,0)", font=dict(color=TEXT, size=10)),
         hovermode="x unified",
         hoverlabel=dict(bgcolor="#1e2433", font_color=TEXT, font_size=11),
     )
