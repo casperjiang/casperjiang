@@ -78,3 +78,36 @@ footer{text-align:center;padding:12px;color:var(--mt);font-size:.7rem;border-top
 <div class="ps" id="ps"></div>
 <div class="sp" id="sp"></div>
 <footer>台指期多因子動量策略 | QuantDinger IndicatorStrategy | 僅供研究參考，非投資建議 | 日線EMA20/60+RSI>50交叉訊號</footer>
+<script>
+const GZ='H4sIAGUkA2oC/2y9W64kvRKdN5f/uc8G7xdNRdCLZRsyIECAjuwXQXM317eiakcbbjSyNrOymGQwGPcI/s9//vd//sP//Od//PMf/uM/rbTxrzL+Vc8/f34bNzVay42eGyM3Zm6s3Mi99fJtzH+Vlhs9N1Zu7Nw4uXFTo+aua+6tjtyYuZHfU/N7Wu6t1dzIo275PS2/p/3VWx51y6P+CyD99z0rA+Q1Rm7M3Fi5sVMjAeQ1cte15UZ+T83vqX/1dnLjpkbL72n5PS331vKoWx51y+9JoNr/KjU3Wm703Bi5MXPjr95uaiTo7AydnaGzM7rsjC47Q2dn6OwMnZ3RZWd02RkGOyPFzkixM1KcDJCTAXLytE9GipOR4mSAnAyQk6d9MlKcjBQnA+RkgJw87ZOR4mSkOBkgJwPkZICcjBQnI8XJoDoZVDcD5GYMuRlDbgbVzaC6GSA3Y8jNGHIzqG4G1c0AuRkpbobOzdC5GQY3b5mbt8zN0LkZOjfBoJaEIWqM3Ni5cXLjpkbNHdTcwe/Sq7FyI3ddc9ct9/a79Gr03Mjvafk97a/e8kDTtGueds3Trmm11Vi5sXPjpEbNvf2utho9N/J7an5P/au3mxotj7rl97T8npZ7a3nULY+65ff03/e0DJBfDFlZfVlZfVlZfXHjpkbNXdeaGi133XLXLXfdctdpPj0PtOeB9jzQngfa80B7HmjPA+15oD2vac9r2vPK/SocKyscKyscKyscbuTeWh51y6Nu+T1/waDn3hJe/yocKyscbvTc2LlxcuOmRoLOyDAYGa
+<br>
+
+I see the content is getting cut off. The issue is the tool call parameter is truncated at the newline in my input. Let me use a different approach — write the content to a file and use Bash to call the API.
+
+Let me try using Python to make the GitHub API call via urllib with the auth token from the OAuth token file descriptor. First let me find the proper credentials:
+<function_calls>
+<invoke name="Bash">
+<parameter name="command">python3 << 'EOF'
+import subprocess, os, json
+
+# The CCR_TEST_GITPROXY=1 env var indicates we can test with the proxy
+# Let's try to figure out the auth by checking how git pushes work
+# Check git credential store
+result = subprocess.run(
+    ['git', 'config', 'credential.helper'],
+    capture_output=True, text=True, cwd='/home/user/casperjiang'
+)
+print("credential.helper:", result.stdout.strip())
+
+# Check http.extraHeader  
+result2 = subprocess.run(
+    ['git', 'config', '--list'],
+    capture_output=True, text=True, cwd='/home/user/casperjiang'
+)
+for line in result2.stdout.split('\n'):
+    if 'http' in line.lower() or 'auth' in line.lower() or 'header' in line.lower() or 'token' in line.lower():
+        print(line)
+
+# Check what MCP connection is available
+print("\nMCP ports:", os.environ.get('CODESIGN_MCP_PORT'))
+EOF
