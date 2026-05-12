@@ -48,16 +48,16 @@ footer{text-align:center;padding:12px;color:var(--mt);font-size:.7rem;border-top
 </style>
 </head>
 <body>
-<div id="ld"><p id="lmsg">解壓縮中...</p><div id="lpg"><div id="lbr" style="width:10%"></div></div></div>
+<div id="ld"><p id="lmsg">解壓縮中…</p><div id="lpg"><div id="lbr" style="width:10%"></div></div></div>
 <header>
-  <div><h1>台指期（TXFPM1）多因子動量策略訊號</h1><p>QuantDinger x 台指期近月連續 | 三時間框架 | 資料截至 2026-05-05</p></div>
+  <div><h1>台指期（TXFPM1）多因子動量策略訊號</h1><p>QuantDinger x 台指期近月連續 | EMA交叉+RSI確認 | 資料截至 2026-05-05</p></div>
   <div class="live"><span class="pulse"></span>策略訊號</div>
 </header>
 <div class="ctrl">
   <div class="tabs">
-    <button class="tab active" onclick="sw('d',this)">日線 (近1年)</button>
-    <button class="tab" onclick="sw('h',this)">60 分鐘</button>
-    <button class="tab" onclick="sw('m',this)">15 分鐘</button>
+    <button class="tab active" onclick="sw('d',this)">日線 (近2年)</button>
+    <button class="tab" onclick="sw('h',this)">EMA 10/30</button>
+    <button class="tab" onclick="sw('m',this)">EMA 15/40</button>
   </div>
   <div class="info">
     <div class="chip"><span class="dg"></span>買入</div>
@@ -77,81 +77,4 @@ footer{text-align:center;padding:12px;color:var(--mt);font-size:.7rem;border-top
 <div id="cw"><div id="mc"></div><div id="rc"></div><div id="vc"></div></div>
 <div class="ps" id="ps"></div>
 <div class="sp" id="sp"></div>
-<footer>台指期多因子動量策略 | QuantDinger IndicatorStrategy | 僅供研究參考，非投資建議</footer>
-<script>
-const PL={d:["EMA 20/60","RSI>50","BB>3.5%","ATR 1.8x","無量能","近1年日線"],
-          h:["EMA 10/30","RSI>45/55","BB>2.0%","ATR 1.8x","無量能","2026/03-05"],
-          m:["EMA 15/40","RSI>45/55","BB>1.5%","ATR 1.8x","無量能","近5週15分"]};
-const CFG={responsive:true,displayModeBar:false};
-const BL={paper_bgcolor:'#0d1117',plot_bgcolor:'#0d1117',font:{color:'#e6edf3',size:11},
-  margin:{l:52,r:12,t:6,b:0},hovermode:'x unified',
-  hoverlabel:{bgcolor:'#161b22',bordercolor:'#30363d',font:{color:'#e6edf3',size:10}},
-  legend:{bgcolor:'rgba(13,17,23,.85)',bordercolor:'#30363d',borderwidth:1,x:0,y:1,xanchor:'left',yanchor:'top',font:{size:9}},
-  xaxis:{type:'category',showgrid:true,gridcolor:'#21262d',zeroline:false,tickfont:{size:9},color:'#8b949e',rangeslider:{visible:false},tickangle:-40},
-  yaxis:{showgrid:true,gridcolor:'#21262d',zeroline:false,tickfont:{size:9},color:'#8b949e',side:'right'}};
-let R=null;
-function step(n){return n<=60?5:n<=200?10:n<=500?25:n<=1000?50:80}
-function render(k){
-  if(!R)return;
-  const d=R[k],ts=d.t,n=ts.length,st=step(n);
-  const tv=ts.filter((_,i)=>i%st===0);
-  const ax={type:'category',showgrid:true,gridcolor:'#21262d',zeroline:false,tickfont:{size:9},color:'#8b949e',
-    categoryorder:'array',categoryarray:ts,tickvals:tv,ticktext:tv,rangeslider:{visible:false},tickangle:-40};
-  Plotly.react('mc',
-    [{type:'scatter',mode:'lines',name:'BB上',x:ts,y:d.bu,line:{color:'#475569',width:1,dash:'dot'},hoverinfo:'skip',showlegend:false},
-     {type:'scatter',mode:'lines',name:'BB下',x:ts,y:d.bl,line:{color:'#475569',width:1,dash:'dot'},fill:'tonexty',fillcolor:'rgba(148,163,184,.04)',hoverinfo:'skip',showlegend:false},
-     {type:'scatter',mode:'lines',name:'止損(多)',x:ts,y:d.sl,line:{color:'#22d3ee',width:1,dash:'dash'},hoverinfo:'skip'},
-     {type:'scatter',mode:'lines',name:'止損(空)',x:ts,y:d.ss,line:{color:'#fb923c',width:1,dash:'dash'},hoverinfo:'skip'},
-     {type:'candlestick',name:'K線',x:ts,open:d.o,high:d.h,low:d.l,close:d.c,
-      increasing:{line:{color:'#26a641',width:1},fillcolor:'#26a641'},
-      decreasing:{line:{color:'#f85149',width:1},fillcolor:'#f85149'},showlegend:false},
-     {type:'scatter',mode:'lines',name:'EMA快',x:ts,y:d.ef,line:{color:'#f0b429',width:1.5},hoverinfo:'skip'},
-     {type:'scatter',mode:'lines',name:'EMA慢',x:ts,y:d.es,line:{color:'#60a5fa',width:1.5},hoverinfo:'skip'},
-     {type:'scatter',mode:'markers+text',name:'買入',x:d.bt,y:d.bl2,
-      text:d.bt.map(()=>'▲'),textposition:'bottom center',textfont:{color:'#26a641',size:15},
-      marker:{symbol:'triangle-up',size:13,color:'#26a641',line:{color:'#fff',width:1}},
-      customdata:d.bc,hovertemplate:'<b>買入</b><br>%{x}<br>收盤:%{customdata}<extra></extra>'},
-     {type:'scatter',mode:'markers+text',name:'賣出',x:d.st,y:d.sh,
-      text:d.st.map(()=>'▼'),textposition:'top center',textfont:{color:'#f85149',size:15},
-      marker:{symbol:'triangle-down',size:13,color:'#f85149',line:{color:'#fff',width:1}},
-      customdata:d.sc,hovertemplate:'<b>賣出</b><br>%{x}<br>收盤:%{customdata}<extra></extra>'}],
-    Object.assign({},BL,{height:440,xaxis:Object.assign({},ax,{showticklabels:false}),
-    yaxis:{...BL.yaxis,title:{text:'點',font:{size:9}}},margin:{l:52,r:12,t:8,b:0}}),CFG);
-  Plotly.react('rc',
-    [30,50,70].map(v=>({type:'scatter',mode:'lines',x:ts,y:Array(n).fill(v),
-      line:{color:v===70?'#f85149':v===50?'#8b949e':'#26a641',width:.7,dash:'dot'},showlegend:false,hoverinfo:'skip'}))
-    .concat([{type:'scatter',mode:'lines',name:'RSI',x:ts,y:d.rsi,line:{color:'#a855f7',width:1.5},showlegend:false}]),
-    Object.assign({},BL,{height:130,xaxis:Object.assign({},ax,{showticklabels:false}),
-    yaxis:{...BL.yaxis,range:[0,100],dtick:25,title:{text:'RSI',font:{size:9}}},margin:{l:52,r:12,t:0,b:0}}),CFG);
-  Plotly.react('vc',
-    [{type:'bar',name:'量比',x:ts,y:d.vr,marker:{color:d.vr.map(v=>v>1.25?'#26a64166':'#21262d99')},showlegend:false},
-     {type:'scatter',mode:'lines',x:ts,y:Array(n).fill(1.25),line:{color:'#f0b42966',width:1,dash:'dot'},showlegend:false,hoverinfo:'skip'}],
-    Object.assign({},BL,{height:100,xaxis:Object.assign({},ax,{showticklabels:true}),
-    yaxis:{...BL.yaxis,title:{text:'量比',font:{size:9}}},margin:{l:52,r:12,t:0,b:36}}),CFG);
-  document.getElementById('ps').innerHTML=PL[k].map(p=>`<div class="pi">${p}</div>`).join('');
-  const bR=d.bt.map((t,i)=>`<div class="se"><span>${t}</span><span class="stb sbuy">買入</span><span style="color:#26a641;font-weight:700">${d.bc[i].toLocaleString()}</span></div>`).join('')||'<div class="se" style="color:var(--mt)">無訊號</div>';
-  const sR=d.st.map((t,i)=>`<div class="se"><span>${t}</span><span class="stb ssel">賣出</span><span style="color:#f85149;font-weight:700">${d.sc[i].toLocaleString()}</span></div>`).join('')||'<div class="se" style="color:var(--mt)">無訊號</div>';
-  document.getElementById('sp').innerHTML=`<div class="sc"><h4>買入（${d.bt.length}筆）</h4>${bR}</div><div class="sc"><h4>賣出（${d.st.length}筆）</h4>${sR}</div>`;
-  document.getElementById('sc2').textContent=`買${d.bt.length} 賣${d.st.length}`;
-}
-function sw(k,btn){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');render(k);}
-const GZ='H4sIAN2mAmoC/7z9284tu7Kdib3KxrqeGDt5JverFHSjsg0VINuAVqluhHp3dhTee3m0aqBPwjzHuvfnV/9REAAAAAAAAAAAAAAAAAAAAAAAAAP8D9u///wMAAP//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP8D9v//AwAA//8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/wP2//8DAAD//wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/wP2//8DAAD//wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/A/b//wMAAP//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP8D9v//AwAA//8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-async function load(){
-  document.getElementById('lbr').style.width='40%';
-  const bin=atob(GZ),bytes=new Uint8Array(bin.length);
-  for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
-  document.getElementById('lbr').style.width='65%';
-  const ds=new DecompressionStream('gzip'),w=ds.writable.getWriter(),r=ds.readable.getReader();
-  w.write(bytes);w.close();
-  const chunks=[];let done=false;
-  while(!done){const{value,done:d}=await r.read();if(value)chunks.push(value);done=d;}
-  document.getElementById('lbr').style.width='90%';
-  const tot=chunks.reduce((a,c)=>a+c.length,0),out=new Uint8Array(tot);
-  let off=0;for(const c of chunks){out.set(c,off);off+=c.length;}
-  return JSON.parse(new TextDecoder().decode(out));
-}
-load().then(j=>{R=j;document.getElementById('ld').style.display='none';render('d');})
-  .catch(e=>{document.getElementById('lmsg').textContent='載入失敗:'+e;});
-</script>
-</body>
-</html>
+<footer>台指期多因子動量策略 | QuantDinger IndicatorStrategy | 僅供研究參考，非投資建議 | 日線EMA20/60+RSI>50交叉訊號</footer>
