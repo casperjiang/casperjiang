@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Argus — AI 財經研究助理</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #0C1520;
+      --surface:  #131F2E;
+      --border:   #1E2D3D;
+      --text:     #E8EDF2;
+      --muted:    #5A7A96;
+      --green:    #00D4A1;
+      --red:      #FF6058;
+      --blue:     #4A9EFF;
+      --gold:     #F0B429;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── TICKER ── */
+    .ticker-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      height: 36px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+    }
+
+    .ticker-track {
+      display: flex;
+      gap: 48px;
+      animation: ticker 32s linear infinite;
+      white-space: nowrap;
+      padding: 0 24px;
+    }
+
+    .ticker-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    .ticker-sym  { color: var(--text); }
+    .ticker-val  { color: var(--muted); }
+    .ticker-up   { color: var(--green); }
+    .ticker-down { color: var(--red); }
+
+    @keyframes ticker {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 60px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .logo-mark {
+      width: 28px;
+      height: 28px;
+      background: var(--green);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    .nav-cta {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--bg);
+      background: var(--green);
+      padding: 8px 18px;
+      border-radius: 7px;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .nav-cta:hover { opacity: 0.85; }
+
+    /* ── HERO ── */
+    .hero {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 72px 48px 80px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 72px;
+      align-items: center;
+    }
+
+    /* Left */
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(0, 212, 161, 0.3);
+      background: rgba(0, 212, 161, 0.06);
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 4px;
+      margin-bottom: 28px;
+    }
+
+    .badge-dot {
+      width: 5px;
+      height: 5px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    .hero h1 {
+      font-size: 56px;
+      font-weight: 700;
+      line-height: 1.08;
+      letter-spacing: -1.8px;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+
+    .hero h1 span {
+      color: var(--green);
+    }
+
+    .hero-sub {
+      font-size: 16px;
+      font-weight: 300;
+      line-height: 1.7;
+      color: var(--muted);
+      margin-bottom: 36px;
+      max-width: 440px;
+    }
+
+    .hero-cta-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 52px;
+    }
+
+    .btn-main {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--bg);
+      background: var(--green);
+      padding: 13px 26px;
+      border-radius: 8px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .btn-main:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0, 212, 161, 0.3);
+    }
+
+    .btn-ghost {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s;
+    }
+
+    .btn-ghost:hover { color: var(--text); }
+
+    .hero-stats {
+      display: flex;
+      gap: 36px;
+      padding-top: 28px;
+      border-top: 1px solid var(--border);
+    }
+
+    .stat-item {}
+    .stat-num {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.5px;
+      margin-bottom: 2px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Right – Dashboard Card */
+    .dashboard {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 24px 64px rgba(0,0,0,0.5);
+    }
+
+    .dash-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .dash-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .dash-icon {
+      width: 22px;
+      height: 22px;
+      background: rgba(0,212,161,0.12);
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dash-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .dash-subtitle {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--green);
+      letter-spacing: 0.5px;
+    }
+
+    .live-dot {
+      width: 5px;
+      height: 5px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    /* Chart area */
+    .dash-chart {
+      padding: 20px 20px 8px;
+    }
+
+    .chart-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 12px;
+    }
+
+    .chart-company { font-size: 12px; color: var(--muted); }
+    .chart-price   { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+    .chart-change  { font-size: 13px; font-weight: 600; }
+    .up   { color: var(--green); }
+    .down { color: var(--red); }
+
+    svg.sparkline { width: 100%; height: 80px; overflow: visible; }
+
+    /* Research cards */
+    .dash-research {
+      padding: 12px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .research-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .insight-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .insight-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+      font-size: 11px;
+    }
+
+    .insight-icon.bull { background: rgba(0,212,161,0.12); }
+    .insight-icon.bear { background: rgba(255,96,88,0.12); }
+    .insight-icon.note { background: rgba(74,158,255,0.12); }
+
+    .insight-text {
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+
+    .insight-text strong {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .dash-footer {
+      border-top: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .typing-indicator {
+      display: flex;
+      gap: 3px;
+      align-items: center;
+    }
+
+    .typing-dot {
+      width: 4px;
+      height: 4px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: bounce 1.2s ease-in-out infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30%            { transform: translateY(-4px); }
+    }
+
+    .typing-text {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* grid bg */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    nav, .ticker-bar, .hero { position: relative; z-index: 1; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav {
+        padding: 0 20px;
+      }
+      .nav-links { display: none; }
+
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 40px;
+        padding: 40px 20px 60px;
+      }
+
+      .hero h1 {
+        font-size: 38px;
+        letter-spacing: -1px;
+      }
+
+      .hero-sub { font-size: 14px; }
+
+      .hero-cta-row { flex-wrap: wrap; gap: 14px; }
+
+      .hero-stats { gap: 24px; }
+      .stat-num   { font-size: 22px; }
+
+      .dashboard { margin: 0; }
+
+      .dash-chart { padding: 16px 16px 6px; }
+      .chart-price { font-size: 20px; }
+
+      .dash-research { padding: 10px 16px 16px; }
+
+      .insight-card { padding: 10px 12px; }
+      .insight-text { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TICKER -->
+  <div class="ticker-bar">
+    <div class="ticker-track" id="ticker">
+      <!-- filled by JS -->
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="logo">
+      <div class="logo-mark">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0C1520" stroke-width="2.5" stroke-linecap="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+      Argus
+    </a>
+    <ul class="nav-links">
+      <li><a href="#">研究報告</a></li>
+      <li><a href="#">市場雷達</a></li>
+      <li><a href="#">財報分析</a></li>
+      <li><a href="#">定價</a></li>
+    </ul>
+    <a href="#" class="nav-cta">申請早鳥資格</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+
+    <!-- Left -->
+    <div>
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        覆蓋 50,000+ 財報 · 即時更新
+      </div>
+
+      <h1>讓 AI 替你<br>讀遍每一份<br><span>財務報告</span></h1>
+
+      <p class="hero-sub">
+        Argus 即時分析財報、法說會逐字稿、產業研究，用結構化洞見取代資訊過載——讓你在對的時間做出更好的決策。
+      </p>
+
+      <div class="hero-cta-row">
+        <a href="#" class="btn-main">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          免費試用 14 天
+        </a>
+        <a href="#" class="btn-ghost">
+          查看示例報告
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </a>
+      </div>
+
+      <div class="hero-stats">
+        <div class="stat-item">
+          <div class="stat-num">50K+</div>
+          <div class="stat-label">財報資料庫</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">&lt; 30s</div>
+          <div class="stat-label">完整研究摘要</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">98%</div>
+          <div class="stat-label">分析師準確率</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right – Dashboard -->
+    <div class="dashboard">
+
+      <div class="dash-header">
+        <div class="dash-title-row">
+          <div class="dash-icon">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00D4A1" stroke-width="2.5" stroke-linecap="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </div>
+          <div>
+            <div class="dash-title">Argus Research</div>
+            <div class="dash-subtitle">即時財經分析引擎</div>
+          </div>
+        </div>
+        <div class="live-badge">
+          <span class="live-dot"></span>
+          LIVE
+        </div>
+      </div>
+
+      <!-- Sparkline chart -->
+      <div class="dash-chart">
+        <div class="chart-meta">
+          <div>
+            <div class="chart-company">NVDA · NASDAQ</div>
+            <div class="chart-price">$875.40</div>
+          </div>
+          <div style="text-align:right">
+            <div class="chart-change up">+$21.80 (+2.56%)</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:2px;">今日</div>
+          </div>
+        </div>
+        <svg class="sparkline" viewBox="0 0 380 80" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#00D4A1" stop-opacity="0.25"/>
+              <stop offset="100%" stop-color="#00D4A1" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <!-- area fill -->
+          <path d="M0,62 C20,58 35,70 55,60 C75,50 90,40 110,42 C130,44 145,55 165,45 C185,35 200,28 220,22 C240,16 255,30 275,20 C295,10 310,14 330,8 C350,2 365,10 380,6 L380,80 L0,80 Z"
+                fill="url(#grad)"/>
+          <!-- line -->
+          <path d="M0,62 C20,58 35,70 55,60 C75,50 90,40 110,42 C130,44 145,55 165,45 C185,35 200,28 220,22 C240,16 255,30 275,20 C295,10 310,14 330,8 C350,2 365,10 380,6"
+                fill="none" stroke="#00D4A1" stroke-width="1.8" stroke-linecap="round"/>
+          <!-- end dot -->
+          <circle cx="380" cy="6" r="3" fill="#00D4A1"/>
+        </svg>
+      </div>
+
+      <!-- AI Insights -->
+      <div class="dash-research">
+        <div class="research-label">Argus 即時洞見</div>
+
+        <div class="insight-card">
+          <div class="insight-icon bull">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#00D4A1" stroke-width="2.5" stroke-linecap="round">
+              <polyline points="18 15 12 9 6 15"/>
+            </svg>
+          </div>
+          <div class="insight-text">
+            <strong>資料中心營收超預期 12%</strong>
+            Q3 法說會顯示 Blackwell 出貨量加速，H200 訂單能見度延伸至 2026 Q2
+          </div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-icon note">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#4A9EFF" stroke-width="2.5" stroke-linecap="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <div class="insight-text">
+            <strong>本益比 vs 同業對比</strong>
+            當前 Forward P/E 35.2x，低於 AMD（41.8x）與 AVGO（38.1x）的歷史均值
+          </div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-icon bear">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FF6058" stroke-width="2.5" stroke-linecap="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div class="insight-text">
+            <strong>潛在風險：出口管制</strong>
+            美國對中國 H20 晶片限制若收緊，預估影響 FY2025 營收約 4–7%
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-footer">
+        <div class="typing-indicator">
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+        </div>
+        <span class="typing-text">正在生成完整研究報告 · 預計 18 秒完成</span>
+      </div>
+
+    </div>
+  </section>
+
+  <script>
+    // Ticker data
+    const tickers = [
+      { sym: 'SPX',  val: '5,248.39', chg: '+0.84%',  up: true  },
+      { sym: 'NVDA', val: '875.40',   chg: '+2.56%',  up: true  },
+      { sym: 'TSLA', val: '172.63',   chg: '-1.20%',  up: false },
+      { sym: 'AAPL', val: '189.84',   chg: '+0.33%',  up: true  },
+      { sym: 'MSFT', val: '420.21',   chg: '+0.67%',  up: true  },
+      { sym: 'AMZN', val: '186.40',   chg: '+1.02%',  up: true  },
+      { sym: 'META', val: '514.70',   chg: '-0.48%',  up: false },
+      { sym: 'GOOG', val: '171.95',   chg: '+0.29%',  up: true  },
+      { sym: 'BRKB', val: '408.12',   chg: '+0.11%',  up: true  },
+      { sym: 'TSM',  val: '145.80',   chg: '+1.74%',  up: true  },
+    ];
+
+    function buildTicker() {
+      const track = document.getElementById('ticker');
+      // duplicate for seamless loop
+      const all = [...tickers, ...tickers];
+      track.innerHTML = all.map(t => `
+        <span class="ticker-item">
+          <span class="ticker-sym">${t.sym}</span>
+          <span class="ticker-val">${t.val}</span>
+          <span class="${t.up ? 'ticker-up' : 'ticker-down'}">${t.chg}</span>
+        </span>
+      `).join('');
+    }
+
+    buildTicker();
+  </script>
+</body>
+</html>
